@@ -1,0 +1,17 @@
+# Thư mục môi trường ảo của Python (Bắt buộc bỏ qua)
+venv/
+.venv/
+env/
+
+# Các file cache compile của Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# File ẩn của hệ điều hành Mac
+.DS_Store
+
+# Thư mục log hoặc dữ liệu tạm của Airflow (nếu có sinh ra cục bộ)
+airflow/logs/
+airflow/airflow.db
