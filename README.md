@@ -1,100 +1,230 @@
-**Overview**
+# Vietnam Hotel Data Platform
 
-This project establishes a comprehensive data pipeline designed to collect, process, and analyze hotel data across Vietnam. The primary goal is to centralize fragmented lodging information scattered across the internet into a single, scalable data lakehouse. By combining modern data engineering workflows with a SQL-RAG conversational interface, the system enables end-users to intuitively query and explore hotel metrics using natural language.
+Cloud-native data engineering platform for collecting, processing, and analyzing hotel data across Vietnam. The project implements an automated **Bronze–Silver–Gold data lakehouse** on AWS and provides a **SQL-RAG natural language interface** for analytical hotel search.
 
-**Business Problem**
+## Overview
 
-As Vietnam's tourism industry experiences rapid growth, a massive volume of accommodation data is continuously generated across various online booking platforms. However, leveraging this data presents several critical technical bottlenecks. First, the data is highly fragmented, remaining scattered across isolated external web channels under diverse formats. Second, there is a lack of a centralized repository required to perform comprehensive, market-wide analysis. Finally, traditional search interfaces are significantly limited when users attempt to filter information by multiple complex criteria simultaneously, such as combining strict budget limits, hyper-local geolocations, and dynamic historical review scores. This project resolves these challenges by automating the data ingestion workflow and deploying an intelligent analytical layer.
+Hotel information is fragmented across online booking platforms and often comes in inconsistent structures and formats. This project centralizes hotel data into a structured analytical platform that supports both traditional SQL analytics and natural-language exploration.
 
-**Solution Overview**
+The platform automates the data lifecycle from web data collection to cloud storage, transformation, analytical modeling, and AI-powered querying.
 
-The system processes data sequentially from initial ingestion to downstream consumption. To begin, raw data from external web sources is systematically gathered via automated tools within the Data Collection Pipeline. This raw dataset is then loaded directly into the Bronze Layer for immutable historical storage. Following this, data cleaning, duplicate removal, and schema normalization operations take place to transition the records into a trusted Silver Layer. From there, the data is transformed and organized into optimized business tables within the Gold Layer to support advanced analytical workloads. Finally, the AI Conversational Search interface utilizes a SQL-RAG architecture to translate unstructured text queries from users into precise SQL commands, which execute directly against the Gold Layer tables.
-
-**Technology Stack**
-
-**1. Data Engineering & Storage**
-Python: Core runtime environment for scripting, scraping, and transformations.
-
-Apache Airflow: Workflow orchestration to schedule and monitor the end-to-end ETL processes.
-
-AWS S3: Centralized Cloud Data Lake storing the Parquet-formatted Medallion layers.
-
-AWS Glue: Serverless ETL jobs and data cataloging for schema discovery.
-
-Amazon Athena: Serverless query engine using standard SQL to interface with S3 data directly.
-
-Apache Parquet: Columnar storage optimized for analytical performance and reduced query costs.
-
-**2. Data Processing**
-
-Pandas: Localized processing and structural mapping for early-stage raw data.
-
-SQL: Relational logic applied at the Athena/Glue level for Silver and Gold layer definitions.
-
-**3. AI Integration**
-
-Claude API: Core LLM utilized for semantic reasoning and dynamic SQL translation.
-
-SQL-RAG Architecture: Retrieval mechanism bridging natural language inputs with structured relational databases.
-
-Natural Language to SQL Generation: Direct interpretation of unstructured Vietnamese queries into executable SQL commands over the Gold layer.
-
-**Key Design Decisions**
-
-**1. Layered Medallion Architecture**
-
-Structuring data into explicit Bronze, Silver, and Gold boundaries improves validation gates, system error isolation, and historical data replayability if upstream website structures change.
-
-**2. Serverless Cloud Infrastructure**
-
-Using AWS Glue, S3, and Athena removes server management overhead. This pay-per-query model keeps infrastructure maintenance minimal and cost-efficient for medium-scale data warehousing.
-
-**3. Structured SQL-RAG vs. Vector Search**
-
-Standard vector embeddings can struggle with precise numeric filters (e.g., exact pricing or specific star counts). Because hotel data is strictly relational, semantic queries are converted into deterministic SQL clauses.
-
-Example: > "Find 5-star hotels in Da Nang near the beach with rating above 4.5" > maps directly to exact SQL WHERE conditions, removing the ambiguity of pure semantic distance vector calculations.
-
-**4. Conversational LLM Interface**
-
-The pipeline integrates Claude to handle context retention across multi-turn user interactions, translating natural language requests into structured SQL scripts without exposing database administrative layers.
-
-**Platform Deliverables**
-
-Automated target platform scraping pipeline with built-in schema resilience.
-
-Production-ready scheduling for recurring incremental data updates.
-
-Centralized, structured historical database of hotels in Vietnam.
-
-Serverless cloud-native storage layout built on optimal data formats (Parquet).
-
-Intent-driven, text-to-SQL search pipeline interface.
-
-**Project Structure**
-
-Plaintext
-
+## Architecture
 <img width="920" height="443" alt="Screenshot 2026-07-09 at 11 28 22 PM" src="https://github.com/user-attachments/assets/8f487a80-6569-4525-9a24-8fe5f795c8eb" />
 
-**Future Improvements**
+## Data Pipeline
 
-Transition from batch orchestration to real-time stream ingestion (AWS Kinesis / Apache Kafka).
+### 1. Data Collection
 
-Integrate data quality testing and threshold alerting frameworks (Great Expectations).
+Hotel data is collected from web sources using Python-based scraping scripts.
 
-Set up automated CI/CD workflows for validation profiling of ETL code changes.
+The ingestion process extracts relevant hotel attributes such as:
 
-Scale ingestion targets to include regional flight and tourism platform metrics.
+* Hotel name
+* Location
+* Star rating
+* Review score
+* Price
+* Address
+* Hotel metadata
 
-**Author**
+### 2. Bronze Layer
 
-Personal Data Engineering Project Developed to implement and benchmark:
+Raw scraped data is stored in **AWS S3** using Parquet format.
 
-Cloud-Native ETL Pipeline Architectures
+The Bronze layer preserves the original ingested data and provides a historical storage boundary for downstream processing.
 
-Automated Scheduling and Distributed Orchestration
+### 3. Silver Layer
 
-Analytical Data Modeling & Storage Strategy
+The Silver layer transforms raw records into clean and standardized datasets.
 
-Relational Text-to-SQL Application Delivery
+Processing includes:
+
+* Schema normalization
+* Data type standardization
+* Duplicate removal
+* Missing-value handling
+* Data cleaning
+* Structural transformation
+
+AWS Glue and SQL are used for transformation and data cataloging.
+
+### 4. Gold Layer
+
+The Gold layer contains business-oriented datasets optimized for analytical queries.
+
+The data is structured around common hotel analysis dimensions such as:
+
+* Hotel
+* Location
+* Rating
+* Pricing
+* Reviews
+
+Amazon Athena provides serverless SQL access to the analytical datasets stored in S3.
+
+### 5. AI / SQL-RAG Layer
+
+The platform provides a natural-language interface using **Claude API**.
+
+Instead of relying on vector similarity for structured hotel attributes, user queries are interpreted and translated into SQL statements that can be executed against the Gold layer.
+
+Example:
+
+> "Find 5-star hotels in Da Nang near the beach with a rating above 4.5."
+
+The query is interpreted into structured SQL conditions such as:
+
+```sql
+WHERE star_rating = 5
+  AND city = 'Da Nang'
+  AND rating > 4.5
+```
+
+This approach provides deterministic filtering for structured attributes such as price, rating, location, and hotel category.
+
+## Orchestration
+
+**Apache Airflow** is used to orchestrate the end-to-end data workflow.
+
+The pipeline can be scheduled to:
+
+1. Collect new hotel data
+2. Store raw data in S3
+3. Trigger downstream transformations
+4. Update analytical datasets
+
+This separates data collection, transformation, and analytical processing into manageable pipeline stages.
+
+## Technology Stack
+
+### Data Engineering
+
+* **Python** — scraping, data processing, and pipeline logic
+* **Apache Airflow** — workflow orchestration and scheduling
+* **Pandas** — initial data processing and structural transformation
+* **SQL** — data transformation and analytical querying
+
+### AWS
+
+* **Amazon S3** — cloud data lake storage
+* **AWS Glue** — serverless ETL and data cataloging
+* **Amazon Athena** — serverless SQL analytics
+
+### Storage
+
+* **Apache Parquet** — columnar storage format optimized for analytical workloads
+
+### AI
+
+* **Claude API** — natural-language understanding and SQL generation
+* **SQL-RAG** — retrieval approach connecting natural-language queries with structured analytical data
+
+## Key Engineering Decisions
+
+### Medallion Architecture
+
+The Bronze–Silver–Gold architecture separates raw, cleaned, and business-ready datasets.
+
+This provides:
+
+* Clear data processing boundaries
+* Easier debugging
+* Data lineage between processing stages
+* Historical data preservation
+* Ability to reprocess downstream layers
+
+### Serverless AWS Architecture
+
+S3, Glue, and Athena reduce infrastructure management requirements while providing scalable storage and serverless analytical processing.
+
+### SQL-RAG Instead of Pure Vector Search
+
+Hotel data contains many structured attributes that require exact filtering.
+
+For example:
+
+* Price < 2,000,000 VND
+* Rating > 4.5
+* 5-star hotels
+* Hotels within a specific location
+
+SQL provides deterministic filtering for these requirements, making it more suitable than relying solely on semantic vector similarity.
+
+## Example Query
+
+### Natural Language
+
+```text
+Find 5-star hotels in Da Nang near the beach
+with a rating above 4.5 and price below 2 million VND.
+```
+
+### SQL
+
+```sql
+SELECT
+    hotel_name,
+    star_rating,
+    rating,
+    price,
+    location
+FROM gold_hotels
+WHERE city = 'Da Nang'
+  AND star_rating = 5
+  AND rating > 4.5
+  AND price < 2000000;
+```
+
+The SQL-RAG layer bridges the natural-language request and the structured analytical dataset.
+
+## Project Structure
+
+```text
+vietnam-hotel-data-platform/
+│
+├── airflow/
+│   └── dags/
+│       └── ...
+│
+├── data/
+│   └── ...
+│
+├── scraper_final.py
+├── start_airflow.sh
+├── stop_airflow.sh
+├── README.md
+└── .gitignore
+```
+
+## Key Deliverables
+
+* Automated hotel data collection pipeline
+* AWS S3-based Medallion data lake
+* Airflow workflow orchestration
+* Serverless ETL and data cataloging with AWS Glue
+* Athena-based analytical querying
+* Parquet-based analytical storage
+* Natural-language-to-SQL search using Claude API
+
+## Future Improvements
+
+Potential extensions include:
+
+* Data quality testing with Great Expectations
+* Automated data quality monitoring and alerting
+* CI/CD for pipeline validation and deployment
+* Incremental and near-real-time ingestion using Kafka or AWS Kinesis
+* Expansion to additional tourism datasets such as flights and attractions
+
+## Author
+
+**Phan Chi Bao**
+
+Personal Data Engineering project focused on:
+
+* Cloud-native data pipelines
+* Data lakehouse architecture
+* Workflow orchestration
+* Analytical data modeling
+* Serverless AWS analytics
+* Natural-language-to-SQL applications
